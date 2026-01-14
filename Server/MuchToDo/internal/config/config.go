@@ -31,6 +31,13 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetDefault("ENABLE_CACHE", false)
 	viper.SetDefault("JWT_EXPIRATION_HOURS", 72)
 
+	// Bind environment variables
+	viper.BindEnv("PORT")
+    viper.BindEnv("MONGO_URI")
+    viper.BindEnv("DB_NAME")
+    viper.BindEnv("JWT_SECRET_KEY")
+    viper.BindEnv("REDIS_ADDR")
+
 	err = viper.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

@@ -1,0 +1,9 @@
+.git
+.gitignore
+docker-compose.yaml
+Dockerfile
+kubernetes/
+scripts/
+evidence/
+vendor/
+*.md
