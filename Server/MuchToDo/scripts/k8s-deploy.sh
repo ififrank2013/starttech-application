@@ -1,5 +1,5 @@
 #!/bin/bash
-# 1. Create Kind Cluster
+# Create Kind Cluster
 kind create cluster --name todo-cluster --config - <<EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -11,11 +11,11 @@ nodes:
     listenAddress: "0.0.0.0"
 EOF
 
-# 2. Build and Load Image
+# Build and Load Image
 docker build -t backend-api:local .
 kind load docker-image backend-api:local --name todo-cluster
 
-# 3. Apply manifests
+# Apply manifestsc
 kubectl apply -f kubernetes/namespace.yaml
 kubectl apply -f kubernetes/mongodb/
 kubectl apply -f kubernetes/backend/
