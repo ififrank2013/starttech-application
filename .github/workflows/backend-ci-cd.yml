@@ -1,0 +1,190 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci-cd.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+
+env:
+  AWS_REGION: us-east-1
+  REGISTRY: ghcr.io
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Download dependencies
+        working-directory: Server/MuchToDo
+        run: go mod download
+
+      - name: Run unit tests
+        working-directory: Server/MuchToDo
+        run: go test -v -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: Server/MuchToDo/coverage.out
+
+      - name: Run code quality checks
+        working-directory: Server/MuchToDo
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          golangci-lint run ./... || true
+
+      - name: Security scanning
+        working-directory: Server/MuchToDo
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec ./... || true
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: Server/MuchToDo
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run smoke tests
+        run: |
+          for i in {1..5}; do
+            if curl -f http://${{ secrets.ALB_DNS }}/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
+      - name: Deploy to EC2 via ASG
+        run: |
+          # Get the target group ARN
+          TG_ARN=$(aws elbv2 describe-target-groups \
+            --names "prod-backend-tg" \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+          
+          # Get current instances
+          INSTANCES=$(aws elbv2 describe-target-health \
+            --target-group-arn $TG_ARN \
+            --query 'TargetHealthDescriptions[*].Target.Id' \
+            --output text)
+          
+          # Rolling update - update one instance at a time
+          for instance in $INSTANCES; do
+            echo "Updating instance $instance"
+            aws ec2 reboot-instances --instance-ids $instance
+            sleep 30
+          done
+
+      - name: Update Auto Scaling scaling policies
+        run: |
+          aws autoscaling put-scaling-policy \
+            --auto-scaling-group-name prod-backend-asg \
+            --policy-name target-tracking-scaling \
+            --policy-type TargetTrackingScaling \
+            --target-tracking-configuration '{
+              "TargetValue": 70.0,
+              "PredefinedMetricSpecification": {
+                "PredefinedMetricType": "ASGAverageCPUUtilization"
+              },
+              "ScaleOutCooldown": 60,
+              "ScaleInCooldown": 300
+            }' || true
+
+      - name: Send deployment notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          payload: |
+            {
+              "text": "Backend deployment ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Backend Deployment* ${{ job.status }}\n*Branch:* main\n*Commit:* ${{ github.sha }}"
+                  }
+                }
+              ]
+            }

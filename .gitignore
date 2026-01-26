@@ -1,38 +1,95 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+npm-debug.log
+yarn-error.log
+.pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+*.pem
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.iml
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Frontend
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/coverage/
+
+# Backend
+backend/starttech-api
+backend/starttech-api.exe
+backend/coverage.txt
+backend/coverage.html
+backend/dist/
+backend/.env.local
+backend/logs/
+
+# Go
+*.out
+*.test
+*.o
+*.a
 *.so
 *.dylib
+vendor/
+go.sum.bak
 
-# Test binary, built with `go test -c`
-*.test
+# Docker
+.docker/
+.dockerignore
+docker-compose.override.yml
 
-# Code coverage profiles and other test artifacts
-*.out
-coverage.*
-*.coverprofile
-profile.cov
+# Logs
+logs/
+*.log
+*.log*
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Temporary files
+tmp/
+temp/
+*.tmp
+.cache/
 
-# Go workspace file
-go.work
-go.work.sum
+# OS
+Thumbs.db
+.DS_Store
 
-# env file
-.env
+# AWS
+.aws/
+credentials
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# Testing
+coverage/
+.coverage
+htmlcov/
 
-# extra files
-docker-compose.test.yaml
-mongodb.key
-mongo-keyfile
+# IDE generated files
+.eslintcache
+.stylelintcache
 
+# Backup files
+*.bak
+*.backup
+core
