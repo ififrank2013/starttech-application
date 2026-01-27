@@ -56,7 +56,7 @@ Access at `http://localhost:5173`
 ### Backend Setup
 
 ```bash
-cd backend
+cd backend/MuchToDo
 go mod download
 go run cmd/api/main.go
 ```
@@ -68,7 +68,7 @@ Server runs on `http://localhost:8080`
 ```bash
 # Build images
 docker build -t starttech-frontend:latest frontend/
-docker build -t starttech-backend:latest backend/
+docker build -t starttech-backend:latest backend/MuchToDo/
 
 # Run containers
 docker run -p 3000:3000 starttech-frontend:latest
@@ -100,24 +100,30 @@ starttech-application/
 │   ├── vite.config.ts                   # Vite config
 │   └── README.md                        # Frontend docs
 ├── backend/
-│   ├── cmd/
-│   │   └── api/
-│   │       └── main.go                  # Entry point
-│   ├── internal/
-│   │   ├── auth/                        # Authentication
-│   │   ├── cache/                       # Caching logic
-│   │   ├── config/                      # Configuration
-│   │   ├── database/                    # Database layer
-│   │   ├── handlers/                    # HTTP handlers
-│   │   ├── logger/                      # Logging
-│   │   ├── middleware/                  # HTTP middleware
-│   │   ├── models/                      # Data models
-│   │   └── routes/                      # Route definitions
-│   ├── go.mod                           # Go dependencies
-│   ├── go.sum                           # Dependency lock
-│   ├── Dockerfile                       # Docker image
-│   ├── Makefile                         # Build commands
-│   └── README.md                        # Backend docs
+│   ├── README.md                        # Backend overview
+│   └── MuchToDo/
+│       ├── .dockerignore                # Docker ignore rules
+│       ├── .env.example                 # Sample env file
+│       ├── cmd/
+│       │   └── api/
+│       │       └── main.go              # Entry point
+│       ├── internal/
+│       │   ├── auth/                    # Authentication
+│       │   ├── cache/                   # Caching logic
+│       │   ├── config/                  # Configuration
+│       │   ├── database/                # Database layer
+│       │   ├── handlers/                # HTTP handlers
+│       │   ├── logger/                  # Logging
+│       │   ├── middleware/              # HTTP middleware
+│       │   ├── models/                  # Data models
+│       │   └── routes/                  # Route definitions
+│       ├── go.mod                       # Go dependencies
+│       ├── go.sum                       # Dependency lock
+│       ├── docker-compose.yaml          # Local orchestration
+│       ├── Dockerfile                   # Docker image
+│       ├── Makefile                     # Build commands
+│       └── docs/                        # Backend docs
+├── evidence/                            # Deployment evidence artifacts
 ├── scripts/
 │   ├── deploy-frontend.sh               # Frontend deployment
 │   ├── deploy-backend.sh                # Backend deployment
@@ -418,7 +424,7 @@ npm install
 npm run dev
 
 # In another terminal, setup backend
-cd backend
+cd backend/MuchToDo
 go mod download
 go run cmd/api/main.go
 ```
@@ -459,7 +465,7 @@ npm test -- TodoItem.test.tsx
 ### Backend Testing
 
 ```bash
-cd backend
+cd backend/MuchToDo
 
 # Run all tests
 make test
