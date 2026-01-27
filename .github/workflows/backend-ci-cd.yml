@@ -6,7 +6,8 @@ on:
       - main
       - develop
     paths:
-      - 'backend/**'
+      - 'Server/**'
+      - 'Server/MuchToDo/**'
       - '.github/workflows/backend-ci-cd.yml'
   pull_request:
     branches:

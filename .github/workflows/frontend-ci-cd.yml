@@ -6,7 +6,7 @@ on:
       - main
       - develop
     paths:
-      - 'frontend/**'
+      - 'Client/**'
       - '.github/workflows/frontend-ci-cd.yml'
   pull_request:
     branches:
