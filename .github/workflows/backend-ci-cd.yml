@@ -38,12 +38,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: backend/MuchToDo
-        run: go test -v -coverprofile=coverage.out ./...
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: backend/MuchToDo/coverage.out
+        run: go test -v ./...
 
       - name: Run code quality checks
         working-directory: backend/MuchToDo
