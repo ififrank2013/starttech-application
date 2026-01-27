@@ -6,7 +6,7 @@ on:
       - main
       - develop
     paths:
-      - 'Client/**'
+      - 'frontend/**'
       - '.github/workflows/frontend-ci-cd.yml'
   pull_request:
     branches:
@@ -51,7 +51,7 @@ jobs:
           VITE_API_URL: ${{ secrets.API_URL }}
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: Client/dist
