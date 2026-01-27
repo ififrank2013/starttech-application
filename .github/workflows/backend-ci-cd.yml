@@ -37,22 +37,22 @@ jobs:
         run: go mod download
 
       - name: Run unit tests
-        working-directory: Server/MuchToDo
+        working-directory: backend/MuchToDo
         run: go test -v -coverprofile=coverage.out ./...
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
-          files: Server/MuchToDo/coverage.out
+          files: backend/MuchToDo/coverage.out
 
       - name: Run code quality checks
-        working-directory: Server/MuchToDo
+        working-directory: backend/MuchToDo
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
           golangci-lint run ./... || true
 
       - name: Security scanning
-        working-directory: Server/MuchToDo
+        working-directory: backend/MuchToDo
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           gosec ./... || true
