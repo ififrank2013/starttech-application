@@ -57,6 +57,12 @@ func NewUserHandler(collection *mongo.Collection, todoCollection *mongo.Collecti
 // @Failure      500  {object}  map[string]string "Server error"
 // @Router       /auth/register [post]
 func (h *UserHandler) Register(c *gin.Context) {
+	// Check if database is available
+	if h.collection == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	var dto models.RegisterUserDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -116,6 +122,11 @@ func (h *UserHandler) Register(c *gin.Context) {
 // @Failure      500  {object}  map[string]string "Server error"
 // @Router       /auth/login [post]
 func (h *UserHandler) Login(c *gin.Context) {
+	if h.collection == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	var dto models.LoginUserDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -184,6 +195,11 @@ func (h *UserHandler) Logout(c *gin.Context) {
 // @Failure      500  {object}  map[string]string "Server error"
 // @Router       /users/me [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
+	if h.collection == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	userIDHex, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -271,6 +287,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Failure      500  {object}  map[string]string "Server error"
 // @Router       /users/me/password [put]
 func (h *UserHandler) ChangePassword(c *gin.Context) {
+	if h.collection == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	userIDHex, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -337,6 +358,11 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 // @Failure      500  {object}  map[string]string "Server error"
 // @Router       /users/me [delete]
 func (h *UserHandler) DeleteUser(c *gin.Context) {
+	if h.collection == nil || h.dbClient == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	userIDHex, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -406,6 +432,11 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 // @Failure      500  {object}  map[string]string "Database error"
 // @Router       /auth/username-check/{username} [get]
 func (h *UserHandler) CheckUsernameAvailability(c *gin.Context) {
+	if h.collection == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	// Trigger a random cache refresh in the background
 	h.triggerRandomCacheRefresh()
 
@@ -454,6 +485,11 @@ func (h *UserHandler) CheckUsernameAvailability(c *gin.Context) {
 // @Failure      500  {object}  map[string]string "Server error"
 // @Router       /users/me [get]
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
+	if h.collection == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database service is currently unavailable"})
+		return
+	}
+
 	userIDHex, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
