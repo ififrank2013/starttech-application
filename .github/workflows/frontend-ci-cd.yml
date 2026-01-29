@@ -47,7 +47,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.API_URL }}
+          VITE_API_BASE_URL: ${{ secrets.API_URL }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
