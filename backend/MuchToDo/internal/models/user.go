@@ -13,6 +13,7 @@ type User struct {
 	FirstName string             `bson:"firstName" json:"firstName" binding:"required"`
 	LastName  string             `bson:"lastName" json:"lastName" binding:"required"`
 	Username  string             `bson:"username" json:"username" binding:"required"`
+	Email     string             `bson:"email" json:"email" binding:"required,email"`
 	Password  string             `bson:"password" json:"-"` // Never return password
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time          `bson:"updatedAt" json:"updatedAt"`
@@ -40,6 +41,7 @@ type RegisterUserDTO struct {
 	FirstName string `json:"firstName" binding:"required"`
 	LastName  string `json:"lastName" binding:"required"`
 	Username  string `json:"username" binding:"required,min=3"`
+	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required,min=6"`
 }
 
@@ -54,6 +56,7 @@ type PublicUser struct {
 	FirstName string             `json:"firstName"`
 	LastName  string             `json:"lastName"`
 	Username  string             `json:"username"`
+	Email     string             `json:"email"`
 }
 
 // UpdateUserDTO is the data transfer object for updating a user's profile.

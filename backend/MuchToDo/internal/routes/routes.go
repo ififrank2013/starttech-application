@@ -21,52 +21,61 @@ func RegisterRoutes(
 	healthHandler *handlers.HealthHandler,
 	authMiddleware gin.HandlerFunc,
 ) {
-	// Public routes
-	router.GET("/health", healthHandler.CheckHealth)
+	// Helper function to register routes on both root and /api paths
+	registerOnBothPaths := func(registerFn func(*gin.RouterGroup)) {
+		registerFn(&router.RouterGroup)
+		apiGroup := router.Group("/api")
+		registerFn(apiGroup)
+	}
 
-	// Swagger documentation route
-	router.GET("/swagger/*any", func(c *gin.Context) {
-		scheme := "http"
-		if c.Request.TLS != nil || strings.HasPrefix(c.Request.Header.Get("X-Forwarded-Proto"), "https") {
-			scheme = "https"
+	registerOnBothPaths(func(r *gin.RouterGroup) {
+		// Public routes
+		r.GET("/health", healthHandler.CheckHealth)
+
+		// Swagger documentation route
+		r.GET("/swagger/*any", func(c *gin.Context) {
+			scheme := "http"
+			if c.Request.TLS != nil || strings.HasPrefix(c.Request.Header.Get("X-Forwarded-Proto"), "https") {
+				scheme = "https"
+			}
+
+			docs.SwaggerInfo.Host = c.Request.Host
+			docs.SwaggerInfo.Schemes = []string{scheme}
+
+			// Delegate to gin-swagger after updating docs
+			ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+		})
+
+		authRoutes := r.Group("/auth")
+		{
+			authRoutes.POST("/register", userHandler.Register)
+			authRoutes.POST("/login", userHandler.Login)
+			authRoutes.POST("/logout", userHandler.Logout)
+			authRoutes.GET("/username-check/:username", userHandler.CheckUsernameAvailability)
 		}
 
-		docs.SwaggerInfo.Host = c.Request.Host
-		docs.SwaggerInfo.Schemes = []string{scheme}
+		// Protected routes
+		protected := r.Group("")
+		protected.Use(authMiddleware)
+		{
+			// Protected task routes (using /tasks to avoid conflict with frontend /todos route)
+			taskRoutes := protected.Group("/tasks")
+			{
+				taskRoutes.POST("", todoHandler.CreateTodo)
+				taskRoutes.GET("", todoHandler.GetAllTodos)
+				taskRoutes.GET("/:id", todoHandler.GetTodoByID)
+				taskRoutes.PUT("/:id", todoHandler.UpdateTodo)
+				taskRoutes.DELETE("/:id", todoHandler.DeleteTodo)
+			}
 
-		// Delegate to gin-swagger after updating docs
-		ginSwagger.WrapHandler(swaggerFiles.Handler)(c)
+			// Protected user routes
+			userRoutes := protected.Group("/users")
+			{
+				userRoutes.GET("/me", userHandler.GetCurrentUser)
+				userRoutes.PUT("/me", userHandler.UpdateUser)
+				userRoutes.PUT("/me/password", userHandler.ChangePassword)
+				userRoutes.DELETE("/me", userHandler.DeleteUser)
+			}
+		}
 	})
-
-	authRoutes := router.Group("/auth")
-	{
-		authRoutes.POST("/register", userHandler.Register)
-		authRoutes.POST("/login", userHandler.Login)
-		authRoutes.POST("/logout", userHandler.Logout)
-		authRoutes.GET("/username-check/:username", userHandler.CheckUsernameAvailability)
-	}
-
-	// Protected routes
-	protected := router.Group("")
-	protected.Use(authMiddleware)
-	{
-		// Protected task routes (using /tasks to avoid conflict with frontend /todos route)
-		taskRoutes := protected.Group("/tasks")
-		{
-			taskRoutes.POST("", todoHandler.CreateTodo)
-			taskRoutes.GET("", todoHandler.GetAllTodos)
-			taskRoutes.GET("/:id", todoHandler.GetTodoByID)
-			taskRoutes.PUT("/:id", todoHandler.UpdateTodo)
-			taskRoutes.DELETE("/:id", todoHandler.DeleteTodo)
-		}
-
-		// Protected user routes
-		userRoutes := protected.Group("/users")
-		{
-			userRoutes.GET("/me", userHandler.GetCurrentUser)
-			userRoutes.PUT("/me", userHandler.UpdateUser)
-			userRoutes.PUT("/me/password", userHandler.ChangePassword)
-			userRoutes.DELETE("/me", userHandler.DeleteUser)
-		}
-	}
 }

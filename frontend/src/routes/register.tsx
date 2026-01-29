@@ -11,6 +11,7 @@ const registerSchema = z.object({
     firstName: z.string().min(1, 'First name is required'),
     lastName: z.string().min(1, 'Last name is required'),
     username: z.string().min(3, 'Username must be at least 3 characters'),
+    email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(6, 'Confirm Password must be at least 6 characters'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -128,6 +129,23 @@ function Register() {
                             />
                             {errors.username && (
                                 <p className="text-red-500 text-xs mt-1">{errors.username.message}</p>
+                            )}
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="sr-only">
+                                Email
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                className="relative block w-full border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
+                                placeholder="Email Address"
+                                {...register('email')}
+                            />
+                            {errors.email && (
+                                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
                             )}
                         </div>
                         <div>

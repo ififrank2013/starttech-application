@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -63,16 +65,32 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
+	// Log request details for debugging
+	log.Printf("Register handler called, method=%s, content-type=%s, content-length=%s", 
+		c.Request.Method, c.Request.Header.Get("Content-Type"), c.Request.Header.Get("Content-Length"))
+	
+	// Read and log the request body
+	bodyBytes, _ := io.ReadAll(c.Request.Body)
+	log.Printf("Request body (bytes): %d, content: %s", len(bodyBytes), string(bodyBytes))
+	
+	// Create a new reader from the bytes for JSON unmarshalling
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	var dto models.RegisterUserDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
+		log.Printf("JSON binding error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("Successfully bound JSON: firstName=%s, lastName=%s, username=%s, email=%s", 
+		dto.FirstName, dto.LastName, dto.Username, dto.Email)
+
 	// Check if username is already taken
 	count, err := h.collection.CountDocuments(context.Background(), bson.M{"username": strings.ToLower(dto.Username)})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		log.Printf("Database error in CountDocuments: %v for username: %s", err, dto.Username)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
 		return
 	}
 	if count > 0 {
@@ -86,6 +104,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		FirstName: dto.FirstName,
 		LastName:  dto.LastName,
 		Username:  strings.ToLower(dto.Username),
+		Email:     dto.Email,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

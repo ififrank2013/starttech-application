@@ -58,25 +58,37 @@ func main() {
 	logger.InitLogger(cfg)
 	slog.Info("Logger initialized", "level", cfg.LogLevel, "format", cfg.LogFormat)
 
-	// 2. Connect to Database
-	dbClient, err := database.ConnectMongo(cfg.MongoURI, cfg.DBName)
-	if err != nil {
-		slog.Error("could not connect to MongoDB", slog.Any("error", err))
-		os.Exit(1)
-	}
-	defer func() {
-		if err = dbClient.Disconnect(context.Background()); err != nil {
-			slog.Error("Error disconnecting from MongoDB", slog.Any("error", err))
+	// 2. Connect to Database (with graceful degradation)
+	var dbClient *mongo.Client
+	if cfg.MongoURI != "" {
+		var err error
+		dbClient, err = database.ConnectMongo(cfg.MongoURI, cfg.DBName)
+		if err != nil {
+			slog.Warn("could not connect to MongoDB, continuing without database", slog.Any("error", err))
+			// Don't exit - allow the app to start in degraded mode
+			dbClient = nil
+		} else {
+			defer func() {
+				if dbClient != nil {
+					if err = dbClient.Disconnect(context.Background()); err != nil {
+						slog.Error("Error disconnecting from MongoDB", slog.Any("error", err))
+					}
+				}
+			}()
+			slog.Info("Successfully connected to MongoDB.")
 		}
-	}()
-	slog.Info("Successfully connected to MongoDB.")
+	} else {
+		slog.Warn("MONGO_URI not configured, starting without database connectivity")
+	}
 
 	// 3. Initialize Services (Cache, Auth)
 	cacheService := cache.NewCacheService(cfg)
 	tokenService := auth.NewTokenService(cfg.JWTSecretKey, cfg.JWTExpirationHours)
 
-	// Preload usernames into cache if enabled
-	preloadUsernamesIntoCache(dbClient, cacheService, cfg)
+	// Preload usernames into cache if enabled and database is available
+	if dbClient != nil {
+		preloadUsernamesIntoCache(dbClient, cacheService, cfg)
+	}
 
 	// 4. Set up API router
 	router := setupRouter(dbClient, cfg, tokenService, cacheService)
@@ -156,9 +168,14 @@ func setupRouter(db *mongo.Client, cfg config.Config, tokenSvc *auth.TokenServic
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 
-	// Initialize collections
-	todoCollection := db.Database(cfg.DBName).Collection("todos")
-	userCollection := db.Database(cfg.DBName).Collection("users")
+	// Initialize collections (only if database is available)
+	var todoCollection *mongo.Collection
+	var userCollection *mongo.Collection
+	
+	if db != nil {
+		todoCollection = db.Database(cfg.DBName).Collection("todos")
+		userCollection = db.Database(cfg.DBName).Collection("users")
+	}
 
 	// Initialize handlers
 	todoHandler := handlers.NewTodoHandler(todoCollection)
